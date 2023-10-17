@@ -1014,13 +1014,18 @@ public class TypeLoaderAccess extends BaseService implements ITypeSystem
         module = TypeSystem.getGlobalModule();
       }
       for (IModule m : module.getModuleTraversalList()) {
+        TypeSystem.getGlobalLock().lock();
         try {
-          IType type = ((Module) m).getModuleTypeLoader().getTypeByFullNameIfValid(fullyQualifiedName, skipJava);
-          if (type != null) {
-            return type;
+          synchronized (((Module) m).getModuleTypeLoader()) {
+            IType type =  ((Module) m).getModuleTypeLoader().getTypeByFullNameIfValid(fullyQualifiedName, skipJava);
+            if (type != null) {
+              return type;
+            }
           }
         } catch (Exception e) {
           throw GosuExceptionUtil.forceThrow(e);
+        } finally {
+          TypeSystem.getGlobalLock().unlock();
         }
       }
     }

@@ -15842,15 +15842,23 @@ public final class GosuParser extends ParserBase implements IGosuParser
     IType type = _typeCache.get( strTypeName );
     if( type == null )
     {
-      if( bRelative )
-      {
-        type = TypeLoaderAccess.instance().getTypeByRelativeNameIfValid_NoGenerics( strTypeName, getTypeUsesMap() );
+      TypeSystem.getGlobalLock().lock();
+      try {
+        TypeLoaderAccess typeLoader = TypeLoaderAccess.instance();
+        synchronized (typeLoader.getCurrentModule().getModuleTypeLoader()) {
+          if (bRelative) {
+            type = typeLoader.getTypeByRelativeNameIfValid_NoGenerics(strTypeName, getTypeUsesMap());
+          } else {
+            type = typeLoader.getByFullNameIfValid(strTypeName);
+          }
+        }
+      } finally {
+        TypeSystem.getGlobalLock().unlock();
       }
-      else
-      {
-        type = TypeLoaderAccess.instance().getByFullNameIfValid( strTypeName );
+      if (type == null) {
+        type = notfound;
       }
-      _typeCache.put( strTypeName, type == null ? notfound : type );
+      _typeCache.put( strTypeName, type );
     }
     return type == notfound ? null : type;
   }
